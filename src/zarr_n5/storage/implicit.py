@@ -23,7 +23,7 @@ def make_implicit_group_bytes() -> Buffer:
 IMPLICIT_GROUP_BUFFER: Final[Buffer] = make_implicit_group_bytes()
 
 
-class ImplicitGroupWrapperStore(WrapperStore):
+class ImplicitGroupWrapperStore[T: Store](WrapperStore):
     """A store which supplies empty group metadata documents if they do not exist.
 
     Used to replicate N5's behaviour where any directory (or prefix) is a valid group,
@@ -31,7 +31,7 @@ class ImplicitGroupWrapperStore(WrapperStore):
     Wrap over an `N5WrapperStore`.
     """
 
-    _store: Store
+    _store: T
 
     async def get(
         self,
@@ -55,14 +55,11 @@ class ImplicitGroupWrapperStore(WrapperStore):
         reses = await super().get_partial_values(prototype, key_ranges)
         out = []
         for (key, byte_range), res in zip(key_ranges, reses):
-            if res is not None or not is_metadata(key):
-                out.append(res)
-                continue
-
-            b = Buffer.from_bytes(
-                slice_buf(IMPLICIT_GROUP_BUFFER.as_buffer_like(), byte_range)
-            )
-            out.append(b)
+            if res is None and is_metadata(key):
+                res = Buffer.from_bytes(
+                    slice_buf(IMPLICIT_GROUP_BUFFER.as_buffer_like(), byte_range)
+                )
+            out.append(res)
 
         return out
 

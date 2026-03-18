@@ -10,12 +10,11 @@ import json
 import asyncio
 
 from ..constants import N5_METADATA_KEY, ZARR_V3_METADATA_KEY
-from ..codec import N5Mode
 from ..metadata import N5GroupMetadata, N5ArrayMetadata
-from ..util import slice_buf, is_metadata
+from ..util import slice_buf, is_metadata, N5Mode
 
 
-class N5WrapperStore(WrapperStore):
+class N5WrapperStore[T: Store](WrapperStore):
     """A read-only store for opening N5 hierarchies.
 
     Requests for Zarr metadata documents are redirected to N5 attributes,
@@ -27,7 +26,7 @@ class N5WrapperStore(WrapperStore):
     Only compatible with DEFAULT-mode N5 arrays.
     """
 
-    _store: Store
+    _store: T
 
     def intercept_metadata(self, key: str) -> None | str:
         if "/" in key:

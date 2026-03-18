@@ -13,7 +13,7 @@ from zarr.abc.codec import BytesBytesCodec
 from zarr.codecs import blosc
 from zarr.codecs import GzipCodec, ZstdCodec
 
-from .codec import N5Mode
+from .util import N5Mode
 from .codec.default import N5DefaultCodec
 
 if TYPE_CHECKING:

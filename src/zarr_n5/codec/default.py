@@ -13,7 +13,7 @@ from zarr.codecs import BytesCodec, Endian, TransposeCodec
 
 from ..metadata import COMPATIBLE_DATA_TYPES
 
-from . import N5BlockHeader, N5Mode
+from ..util import N5BlockHeader, N5Mode
 
 N5_DEFAULT_NAME = "n5_default"
 ENDIAN = Endian.big
@@ -127,9 +127,8 @@ class N5DefaultCodec(ArrayBytesCodec):
             )
         ]
 
-        for c in self.codecs:
+        for c in self.codecs[:-1]:
             reprs.append(c.resolve_metadata(reprs[-1]))
-        reprs.pop()
 
         for c, cs in zip(reversed(self.codecs), reversed(reprs)):
             buf = await c._decode_single(buf, cs)  # type:ignore
