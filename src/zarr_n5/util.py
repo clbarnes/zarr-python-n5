@@ -12,6 +12,7 @@ import struct
 
 
 class N5Mode(IntEnum):
+    """N5 block mode"""
     DEFAULT = 0
     VARLENGTH = 1
     OBJECT = 2
@@ -19,6 +20,7 @@ class N5Mode(IntEnum):
 
 @dataclass
 class N5BlockHeader:
+    """Parsed representation of the N5 block header."""
     mode: N5Mode
     """Stored as >u16"""
 
@@ -28,14 +30,20 @@ class N5BlockHeader:
     num_elem: int | None = None
     """Stored as >u32 if mode == VARLENGTH"""
 
+    def __post_init__(self):
+        if self.num_elem is not None and self.mode != N5Mode.VARLENGTH:
+            raise ValueError("num_elem must be None if mode is not VARLENGTH")
+
     @classmethod
     def calc_size(cls, ndim: int, is_varlength: bool = False) -> int:
+        """Calculate the number of bytes in an N5 block header."""
         base = 2 + 2 + 4 * ndim
         if is_varlength:
             base += 4
         return base
 
     def size(self) -> int:
+        """Determine the number of bytes this header will take."""
         return self.calc_size(len(self.shape), self.mode == N5Mode.VARLENGTH)
 
     @classmethod
@@ -60,37 +68,39 @@ class N5BlockHeader:
     def to_bytes(self) -> bytes:
         fmt = ">HH" + "I" * self.ndim
         args = [self.mode, self.ndim, *self.shape]
-        if self.num_elem is None:
-            return struct.pack(fmt, *args)
-        else:
-            return struct.pack(fmt + "I", *args, self.num_elem)
-
+        if self.num_elem is not None:
+            fmt += "I"
+            args.append(self.num_elem)
+        return struct.pack(fmt, *args)
 
 class StructParser:
     def __init__(self, buf: bytes, endian: str = "") -> None:
         self.endian = endian
         self.buf = buf
+        self.offset = 0
 
     def unpack(self, fmt: str) -> tuple[Any, ...]:
         fmt = self.endian + fmt
         sz = struct.calcsize(fmt)
-        out = struct.unpack(fmt, self.buf[:sz])
-        self.buf = self.buf[sz:]
+        out = struct.unpack(fmt, self.buf[self.offset : self.offset + sz])
+        self.offset += sz
         return out
 
 
 def slice_buf(b: bytes, byte_range: ByteRequest | None = None) -> bytes:
+    """Optionally slice a byte buffer."""
     if byte_range is None:
-        pass
+        return b
     elif isinstance(byte_range, RangeByteRequest):
         b = b[byte_range.start : byte_range.end]
     elif isinstance(byte_range, OffsetByteRequest):
-        b = b[byte_range:]
+        b = b[byte_range.offset :]
     elif isinstance(byte_range, SuffixByteRequest):
         b = b[-byte_range.suffix :]
 
-    return b
+    raise TypeError(f"byte_range argument has unknown type {type(byte_range)}")
 
 
-def is_metadata(key: str):
+def is_zarr3_metadata(key: str):
+    """Whether a key belongs to a Zarr v3 metadata object."""
     return key.split("/")[-1] == ZARR_V3_METADATA_KEY

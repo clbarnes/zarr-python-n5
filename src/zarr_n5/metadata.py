@@ -1,8 +1,6 @@
 from copy import deepcopy
-from dataclasses import dataclass
 import itertools
 from typing import Any, TYPE_CHECKING, Self
-from zarr.abc.metadata import Metadata
 from zarr.core.group import GroupMetadata
 from zarr.core.metadata.v3 import ArrayV3Metadata
 from zarr.core.dtype import ZDType
@@ -36,49 +34,6 @@ COMPATIBLE_DATA_TYPES: dict[str, tuple[ZDType, int]] = {
 """Data types which exist in both Zarr and N5.
 
 Maps to the Zarr data type and item size."""
-
-
-@dataclass(frozen=True)
-class N5Raw(Metadata):
-    pass
-
-
-@dataclass(frozen=True)
-class N5Bzip2(Metadata):
-    pass
-
-
-@dataclass(frozen=True)
-class N5Gzip(Metadata):
-    pass
-
-
-@dataclass(frozen=True)
-class N5Lz4(Metadata):
-    pass
-
-
-@dataclass(frozen=True)
-class N5Xz(Metadata):
-    pass
-
-
-@dataclass(frozen=True)
-class N5Blosc(Metadata):
-    pass
-
-
-@dataclass(frozen=True)
-class N5Zstandard(Metadata):
-    pass
-
-
-@dataclass(frozen=True)
-class N5Jpeg(Metadata):
-    pass
-
-
-N5Compression = N5Raw | N5Bzip2 | N5Gzip | N5Lz4 | N5Xz | N5Blosc | N5Zstandard | N5Jpeg
 
 
 class N5GroupMetadata:

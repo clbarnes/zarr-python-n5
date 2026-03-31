@@ -11,7 +11,7 @@ import asyncio
 
 from ..constants import N5_METADATA_KEY, ZARR_V3_METADATA_KEY
 from ..metadata import N5GroupMetadata, N5ArrayMetadata
-from ..util import slice_buf, is_metadata, N5Mode
+from ..util import slice_buf, is_zarr3_metadata, N5Mode
 
 
 class N5WrapperStore[T: Store](WrapperStore):
@@ -29,6 +29,10 @@ class N5WrapperStore[T: Store](WrapperStore):
     _store: T
 
     def intercept_metadata(self, key: str) -> None | str:
+        """If the given key is for Zarr v3 metadata, return the key for N5 metadata in the equivalent node.
+
+        Otherwise, return None.
+        """
         if "/" in key:
             pref, fname = key.rsplit("/", 1)
         else:
@@ -78,13 +82,18 @@ class N5WrapperStore[T: Store](WrapperStore):
         prototype: BufferPrototype,
         key_ranges: Iterable[tuple[str, ByteRequest | None]],
     ) -> list[Buffer | None]:
+
+        # Split the key ranges into metadata requests and other (chunk) requests.
+        # We always need to read the whole N5 metadata file
+        # to convert it into Zarr v3 metadata before slicing it,
+        # so this prevents reading it multiple times.
         meta_reqs: defaultdict[str, list[tuple[int, ByteRequest | None]]] = defaultdict(
             list
         )
         other_reqs: list[tuple[int, tuple[str, ByteRequest | None]]] = []
         count = 0
         for idx, (key, byte_range) in enumerate(key_ranges):
-            if is_metadata(key):
+            if is_zarr3_metadata(key):
                 meta_reqs[key].append((idx, byte_range))
             else:
                 other_reqs.append((idx, (key, byte_range)))
@@ -97,16 +106,20 @@ class N5WrapperStore[T: Store](WrapperStore):
         meta_reqs_fut = asyncio.gather(
             *(self.get(k, prototype) for k, _ in meta_req_list)
         )
+        # Gather all requests to run concurrently
         other_res, meta_res = await asyncio.gather(other_reqs_fut, meta_reqs_fut)
         out: list[None | Buffer] = [None for _ in range(count)]
+
+        # Slice and insert the metadata responses into the pre-allocated output list
         for res, (_, meta_req) in zip(meta_res, meta_req_list):
             if res is None:
                 continue
+            blike = res.as_buffer_like()
             for idx, byte_range in meta_req:
-                out[idx] = Buffer.from_bytes(
-                    slice_buf(res.as_buffer_like(), byte_range)
-                )
+                out[idx] = Buffer.from_bytes(slice_buf(blike, byte_range))
 
+        # Insert the non-metadata responses into the output;
+        # these are already sliced by the underlying store.
         for res, (idx, _) in zip(other_res, other_reqs):
             out[idx] = res
 

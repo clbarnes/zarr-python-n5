@@ -1,6 +1,5 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from io import BytesIO
 from typing import Self
 
 from zarr.abc.codec import ArrayBytesCodec, Codec, BytesBytesCodec
@@ -13,7 +12,7 @@ from zarr.codecs import BytesCodec, Endian, TransposeCodec
 
 from ..metadata import COMPATIBLE_DATA_TYPES
 
-from ..util import N5BlockHeader, N5Mode
+from ..util import N5BlockHeader
 
 N5_DEFAULT_NAME = "n5_default"
 ENDIAN = Endian.big
@@ -149,27 +148,28 @@ class N5DefaultCodec(ArrayBytesCodec):
             order=chunk_spec.order,
             fill_value=chunk_spec.fill_value,
         )
-        common_shape = [min(s1, s2) for s1, s2 in zip(chunk_spec.shape, buf.shape)]
-        slices = tuple(slice(0, s) for s in common_shape)
+        slices = tuple(
+            slice(0, min(s1, s2)) for s1, s2 in zip(chunk_spec.shape, buf.shape)
+        )
         out.as_ndarray_like()[slices] = buf.as_ndarray_like()[slices]  # type:ignore
 
         return out
 
-    async def _encode_single(
-        self, chunk_data: NDBuffer, chunk_spec: ArraySpec
-    ) -> Buffer | None:
-        header = N5BlockHeader(N5Mode.DEFAULT, chunk_spec.shape)
-        for c in self.codecs:
-            chunk_data = c._encode_single(chunk_data, chunk_spec)  # type:ignore
-            chunk_spec = c.resolve_metadata(chunk_spec)
+    # async def _encode_single(
+    #     self, chunk_data: NDBuffer, chunk_spec: ArraySpec
+    # ) -> Buffer | None:
+    #     header = N5BlockHeader(N5Mode.DEFAULT, chunk_spec.shape)
+    #     for c in self.codecs:
+    #         chunk_data = c._encode_single(chunk_data, chunk_spec)  # type:ignore
+    #         chunk_spec = c.resolve_metadata(chunk_spec)
 
-        buf: Buffer = chunk_data  # type: ignore
+    #     buf: Buffer = chunk_data  # type: ignore
 
-        bio = BytesIO()
-        bio.write(header.to_bytes())
-        # TODO: avoid this copy?
-        bio.write(buf.as_buffer_like())
-        return Buffer.from_bytes(bio.getbuffer())
+    #     bio = BytesIO()
+    #     bio.write(header.to_bytes())
+    #     # TODO: avoid this copy?
+    #     bio.write(buf.as_buffer_like())
+    #     return Buffer.from_bytes(bio.getbuffer())
 
     @classmethod
     def from_dict(

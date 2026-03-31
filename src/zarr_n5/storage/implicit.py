@@ -10,7 +10,7 @@ from zarr.storage import WrapperStore
 from zarr.core.group import GroupMetadata
 from zarr.core.buffer import Buffer, BufferPrototype
 
-from ..util import slice_buf, is_metadata
+from ..util import slice_buf, is_zarr3_metadata
 
 
 def make_implicit_group_bytes() -> Buffer:
@@ -40,7 +40,7 @@ class ImplicitGroupWrapperStore[T: Store](WrapperStore):
         byte_range: ByteRequest | None = None,
     ) -> Buffer | None:
         res = await self._store.get(key, prototype, byte_range)
-        if res is not None or not is_metadata(key):
+        if res is not None or not is_zarr3_metadata(key):
             return res
 
         b = slice_buf(IMPLICIT_GROUP_BUFFER.as_buffer_like(), byte_range)
@@ -55,7 +55,7 @@ class ImplicitGroupWrapperStore[T: Store](WrapperStore):
         reses = await super().get_partial_values(prototype, key_ranges)
         out = []
         for (key, byte_range), res in zip(key_ranges, reses):
-            if res is None and is_metadata(key):
+            if res is None and is_zarr3_metadata(key):
                 res = Buffer.from_bytes(
                     slice_buf(IMPLICIT_GROUP_BUFFER.as_buffer_like(), byte_range)
                 )
@@ -64,6 +64,6 @@ class ImplicitGroupWrapperStore[T: Store](WrapperStore):
         return out
 
     async def exists(self, key: str) -> bool:
-        if is_metadata(key):
+        if is_zarr3_metadata(key):
             return True
         return await super().exists(key)
