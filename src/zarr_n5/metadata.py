@@ -116,6 +116,7 @@ class N5ArrayMetadata(N5GroupMetadata):
 
     def to_zarr(self, mode: N5Mode = N5Mode.DEFAULT):
         from .codec.default import N5DefaultCodec
+
         if mode != N5Mode.DEFAULT:
             raise NotImplementedError("Only default-mode N5 is supported")
         compressor = self._to_zarr_codec()

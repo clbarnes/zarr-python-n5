@@ -13,6 +13,7 @@ import struct
 
 class N5Mode(IntEnum):
     """N5 block mode"""
+
     DEFAULT = 0
     VARLENGTH = 1
     OBJECT = 2
@@ -21,6 +22,7 @@ class N5Mode(IntEnum):
 @dataclass
 class N5BlockHeader:
     """Parsed representation of the N5 block header."""
+
     mode: N5Mode
     """Stored as >u16"""
 
@@ -72,6 +74,7 @@ class N5BlockHeader:
             fmt += "I"
             args.append(self.num_elem)
         return struct.pack(fmt, *args)
+
 
 class StructParser:
     def __init__(self, buf: bytes, endian: str = "") -> None:
