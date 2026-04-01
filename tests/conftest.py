@@ -20,6 +20,6 @@ def raw_data(data_dir) -> np.ndarray:
 @pytest.fixture
 def data_store(data_dir) -> Store:
     local = LocalStore(data_dir)
-    n5 = N5WrapperStore(local)
-    implicit_group = ImplicitGroupWrapperStore(n5)
+    n5: N5WrapperStore = N5WrapperStore(local)
+    implicit_group: ImplicitGroupWrapperStore = ImplicitGroupWrapperStore(n5)
     return implicit_group

@@ -59,7 +59,7 @@ class N5GroupMetadata:
             raise ValueError("n5 attribute is not a string")
         return cls(n5, jso)
 
-    def to_zarr(self) -> GroupMetadata:
+    def to_zarr(self):
         attrs = deepcopy(self.attributes)
         attrs["_n5"] = self.to_jso()
         return GroupMetadata(attrs)
@@ -114,7 +114,7 @@ class N5ArrayMetadata(N5GroupMetadata):
         grp = super().from_jso(jso)
         return cls.from_group(grp)
 
-    def to_zarr(self, mode: N5Mode = N5Mode.DEFAULT) -> ArrayV3Metadata:
+    def to_zarr(self, mode: N5Mode = N5Mode.DEFAULT):
         from .codec.default import N5DefaultCodec
         if mode != N5Mode.DEFAULT:
             raise NotImplementedError("Only default-mode N5 is supported")
@@ -144,7 +144,6 @@ class N5ArrayMetadata(N5GroupMetadata):
                 return None
             case "blosc":
                 item_size = COMPATIBLE_DATA_TYPES[self.data_type][1]
-
                 return parse_blosc(self.compression, item_size)
             case "gzip":
                 return parse_gzip(self.compression)

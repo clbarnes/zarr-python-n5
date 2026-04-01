@@ -66,12 +66,23 @@ class N5DefaultCodec(ArrayBytesCodec):
 
     @classmethod
     def from_compressor(cls, ndim: int, compressor: BytesBytesCodec | None = None):
+        transpose = cls.make_transpose(ndim)
+        endian = cls.make_bytes()
+        codecs: CodecTuple
+        if compressor is None:
+            codecs = (transpose, endian)
+        else:
+            codecs = (transpose, endian, compressor)
+        return cls(codecs=codecs)
+
+    @classmethod
+    def make_transpose(cls, ndim: int) -> TransposeCodec:
         order = list(range(ndim))
-        order.reverse()
-        codecs = [TransposeCodec(order=tuple(order)), BytesCodec(endian=N5_ENDIAN)]
-        if compressor is not None:
-            codecs.append(compressor)
-        return cls(codecs=tuple(codecs))
+        return TransposeCodec(order=tuple(reversed(order)))
+
+    @classmethod
+    def make_bytes(cls) -> BytesCodec:
+        return BytesCodec(endian=N5_ENDIAN)
 
     def compute_encoded_size(
         self, input_byte_length: int, chunk_spec: ArraySpec
@@ -90,24 +101,24 @@ class N5DefaultCodec(ArrayBytesCodec):
         return chunk_spec
 
     def evolve_from_array_spec(self, array_spec: ArraySpec) -> Self:
-        check_valid_transpose(self.codecs[0])
-        order = list(range(array_spec.ndim))
-        order.reverse()
-        codecs = [
-            TransposeCodec(order=tuple(order)),
-            self.codecs[1].evolve_from_array_spec(array_spec),
-        ]
+        transpose = self.make_transpose(array_spec.ndim).evolve_from_array_spec(
+            array_spec
+        )
+        endian = self.make_bytes().evolve_from_array_spec(array_spec)
 
+        codecs: CodecTuple
         match len(self.codecs):
             case 2:
-                pass
+                codecs = (transpose, endian)
             case 3:
-                codecs.append(self.codecs[2].evolve_from_array_spec(array_spec))  # type: ignore
+                compressor: BytesBytesCodec = self.codecs[2].evolve_from_array_spec(  # type:ignore
+                    array_spec
+                )
+                codecs = (transpose, endian, compressor)
             case _:
                 raise ValueError("unsupported number of codecs")
 
-        new = N5DefaultCodec(codecs=tuple(codecs))
-        return new  # type:ignore
+        return type(self)(codecs=codecs)
 
     @property
     def ndim(self):
@@ -150,9 +161,12 @@ class N5DefaultCodec(ArrayBytesCodec):
                 chunk_spec.prototype,
             )
             all_eq = False
-        body_nd, *_ = await self.codec_pipeline.decode([(body_buf, body_spec)])
+        maybe_body_nd, *_ = await self.codec_pipeline.decode([(body_buf, body_spec)])
         # TODO: use codec_pipeline.read() instead; this should avoid the copy for truncated-block cases
-        assert body_nd is not None
+        if maybe_body_nd is None:
+            raise RuntimeError("unexpected nullish buffer")
+        else:
+            body_nd = maybe_body_nd
 
         if all_eq:
             # don't need to truncate or pad
@@ -162,16 +176,16 @@ class N5DefaultCodec(ArrayBytesCodec):
         can_trim = True
 
         min_shape = []
-        slicing = []
+        slice_lst = []
         for hs, cs in zip(header.shape, chunk_spec.shape):
             if cs > hs:
                 # requested chunk is larger than the N5 block in some dimension
                 can_trim = False
             min_len = min(hs, cs)
             min_shape.append(min_len)
-            slicing.append(slice(0, min_len))
+            slice_lst.append(slice(0, min_len))
 
-        slicing = tuple(slicing)
+        slicing = tuple(slice_lst)
 
         if can_trim:
             return body_nd[slicing]
