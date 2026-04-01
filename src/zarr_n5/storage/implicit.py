@@ -8,19 +8,19 @@ from zarr.abc.store import (
 )
 from zarr.storage import WrapperStore
 from zarr.core.group import GroupMetadata
-from zarr.core.buffer import Buffer, BufferPrototype
+from zarr.core.buffer import BufferPrototype, Buffer
 
 from ..util import slice_buf, is_zarr3_metadata
 
 
-def make_implicit_group_bytes() -> Buffer:
+def make_implicit_group_bytes() -> bytes:
     g = GroupMetadata()
     g.attributes["_implicit"] = True
 
-    return Buffer.from_bytes(json.dumps(g.to_dict()).encode())
+    return json.dumps(g.to_dict()).encode()
 
 
-IMPLICIT_GROUP_BUFFER: Final[Buffer] = make_implicit_group_bytes()
+IMPLICIT_GROUP_BYTES: Final[bytes] = make_implicit_group_bytes()
 
 
 class ImplicitGroupWrapperStore[T: Store](WrapperStore):
@@ -43,8 +43,8 @@ class ImplicitGroupWrapperStore[T: Store](WrapperStore):
         if res is not None or not is_zarr3_metadata(key):
             return res
 
-        b = slice_buf(IMPLICIT_GROUP_BUFFER.as_buffer_like(), byte_range)
-        return Buffer.from_bytes(b)
+        b = slice_buf(IMPLICIT_GROUP_BYTES, byte_range)
+        return prototype.buffer.from_bytes(b)
 
     async def get_partial_values(
         self,
@@ -56,8 +56,8 @@ class ImplicitGroupWrapperStore[T: Store](WrapperStore):
         out = []
         for (key, byte_range), res in zip(key_ranges, reses):
             if res is None and is_zarr3_metadata(key):
-                res = Buffer.from_bytes(
-                    slice_buf(IMPLICIT_GROUP_BUFFER.as_buffer_like(), byte_range)
+                res = prototype.buffer.from_bytes(
+                    slice_buf(IMPLICIT_GROUP_BYTES, byte_range)
                 )
             out.append(res)
 

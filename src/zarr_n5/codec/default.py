@@ -1,21 +1,23 @@
-from copy import deepcopy
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Self
 
-from zarr.abc.codec import ArrayBytesCodec, Codec, BytesBytesCodec
+from zarr.abc.codec import ArrayBytesCodec, Codec, BytesBytesCodec, CodecPipeline
 from zarr.core.array_spec import ArraySpec
 from zarr.core.buffer.core import Buffer, NDBuffer
 from zarr.core.chunk_grids import ChunkGrid
 from zarr.core.dtype.wrapper import TBaseDType, ZDType, TBaseScalar
 from zarr.core.common import JSON, parse_named_configuration
+from zarr.core.metadata.v3 import parse_codecs
 from zarr.codecs import BytesCodec, Endian, TransposeCodec
+from zarr.registry import get_pipeline_class
 
 from ..metadata import COMPATIBLE_DATA_TYPES
 
 from ..util import N5BlockHeader
 
 N5_DEFAULT_NAME = "n5_default"
-ENDIAN = Endian.big
+N5_ENDIAN = Endian.big
 
 
 def check_valid_transpose(codec: Codec):
@@ -28,7 +30,7 @@ def check_valid_transpose(codec: Codec):
 def check_valid_bytes(codec: Codec):
     if not isinstance(codec, BytesCodec):
         raise ValueError("not bytes codec")
-    if codec.endian != ENDIAN:
+    if codec.endian != N5_ENDIAN:
         raise ValueError("bytes codec must be big-endian")
 
 
@@ -47,21 +49,26 @@ CodecTuple = (
 class N5DefaultCodec(ArrayBytesCodec):
     codecs: CodecTuple
 
-    def __init__(self, *, codecs: CodecTuple) -> None:
-        if not 2 <= len(codecs) <= 3:
-            raise ValueError(f"expected 2-3 codecs, got {len(codecs)}")
-        check_valid_transpose(codecs[0])
-        check_valid_bytes(codecs[1])
-        if len(codecs) > 2:
-            check_valid_compressor(codecs[2])
+    def __init__(self, *, codecs: Iterable[Codec | dict[str, JSON]]) -> None:
+        cs = parse_codecs(codecs)
+        if not 2 <= len(cs) <= 3:
+            raise ValueError(f"expected 2-3 codecs, got {len(cs)}")
+        check_valid_transpose(cs[0])
+        check_valid_bytes(cs[1])
+        if len(cs) > 2:
+            check_valid_compressor(cs[2])
 
-        object.__setattr__(self, "codecs", codecs)
+        object.__setattr__(self, "codecs", cs)
+
+    @property
+    def codec_pipeline(self) -> CodecPipeline:
+        return get_pipeline_class().from_codecs(self.codecs)
 
     @classmethod
     def from_compressor(cls, ndim: int, compressor: BytesBytesCodec | None = None):
         order = list(range(ndim))
         order.reverse()
-        codecs = [TransposeCodec(order=tuple(order)), BytesCodec(endian=ENDIAN)]
+        codecs = [TransposeCodec(order=tuple(order)), BytesCodec(endian=N5_ENDIAN)]
         if compressor is not None:
             codecs.append(compressor)
         return cls(codecs=tuple(codecs))
@@ -86,9 +93,21 @@ class N5DefaultCodec(ArrayBytesCodec):
         check_valid_transpose(self.codecs[0])
         order = list(range(array_spec.ndim))
         order.reverse()
-        new = deepcopy(self)
-        setattr(new.codecs[0], "order", tuple(order))
-        return new
+        codecs = [
+            TransposeCodec(order=tuple(order)),
+            self.codecs[1].evolve_from_array_spec(array_spec),
+        ]
+
+        match len(self.codecs):
+            case 2:
+                pass
+            case 3:
+                codecs.append(self.codecs[2].evolve_from_array_spec(array_spec))  # type: ignore
+            case _:
+                raise ValueError("unsupported number of codecs")
+
+        new = N5DefaultCodec(codecs=tuple(codecs))
+        return new  # type:ignore
 
     @property
     def ndim(self):
@@ -103,8 +122,8 @@ class N5DefaultCodec(ArrayBytesCodec):
     ) -> None:
         if len(shape) != len(self.codecs[0].order):
             raise ValueError(f"array is {len(shape)}D, codec is {self.ndim}D")
-        if not dtype._zarr_v3_name not in COMPATIBLE_DATA_TYPES:
-            raise ValueError(f"N5 does not support data type {dtype}")
+        if dtype._zarr_v3_name not in COMPATIBLE_DATA_TYPES:
+            raise ValueError(f"N5 does not support data type {dtype._zarr_v3_name}")
 
         return super().validate(shape=shape, dtype=dtype, chunk_grid=chunk_grid)
 
@@ -114,45 +133,56 @@ class N5DefaultCodec(ArrayBytesCodec):
         b = chunk_data.as_buffer_like()
         header = N5BlockHeader.from_bytes(b)
         offset = header.size()
-        b = b[offset:]
-        buf = Buffer.from_bytes(b)  # type:ignore
-        reprs = [
-            ArraySpec(
+
+        body_buf = chunk_data[offset:]
+        body_nd = chunk_spec.prototype.nd_buffer.empty(
+            header.shape, chunk_spec.dtype.to_native_dtype(), chunk_spec.order
+        )
+        if header.shape == chunk_spec.shape:
+            body_spec = chunk_spec
+            all_eq = True
+        else:
+            body_spec = ArraySpec(
                 header.shape,
                 chunk_spec.dtype,
                 chunk_spec.fill_value,
                 chunk_spec.config,
                 chunk_spec.prototype,
             )
-        ]
+            all_eq = False
+        body_nd, *_ = await self.codec_pipeline.decode([(body_buf, body_spec)])
+        # TODO: use codec_pipeline.read() instead; this should avoid the copy for truncated-block cases
+        assert body_nd is not None
 
-        for c in self.codecs[:-1]:
-            reprs.append(c.resolve_metadata(reprs[-1]))
+        if all_eq:
+            # don't need to truncate or pad
+            return body_nd
 
-        for c, cs in zip(reversed(self.codecs), reversed(reprs)):
-            buf = await c._decode_single(buf, cs)  # type:ignore
+        # whether we can get the chunk we want by trimming down the N5 block body
+        can_trim = True
 
-        buf: NDBuffer
+        min_shape = []
+        slicing = []
+        for hs, cs in zip(header.shape, chunk_spec.shape):
+            if cs > hs:
+                # requested chunk is larger than the N5 block in some dimension
+                can_trim = False
+            min_len = min(hs, cs)
+            min_shape.append(min_len)
+            slicing.append(slice(0, min_len))
 
-        if buf.shape == chunk_spec.shape:
-            return buf
+        slicing = tuple(slicing)
 
-        if all(s1 < s2 for s1, s2 in zip(chunk_spec.shape, buf.shape)):
-            nd = buf.as_ndarray_like()
-            nd2 = nd[tuple(slice(0, s) for s in chunk_spec.shape)]  # type:ignore
-            return NDBuffer.from_ndarray_like(nd2)
+        if can_trim:
+            return body_nd[slicing]
 
-        out = NDBuffer.create(
+        out = chunk_spec.prototype.nd_buffer.create(
             shape=chunk_spec.shape,
             dtype=chunk_spec.dtype.to_native_dtype(),
             order=chunk_spec.order,
             fill_value=chunk_spec.fill_value,
         )
-        slices = tuple(
-            slice(0, min(s1, s2)) for s1, s2 in zip(chunk_spec.shape, buf.shape)
-        )
-        out.as_ndarray_like()[slices] = buf.as_ndarray_like()[slices]  # type:ignore
-
+        out[slicing] = body_nd[slicing]
         return out
 
     # async def _encode_single(
@@ -185,4 +215,7 @@ class N5DefaultCodec(ArrayBytesCodec):
     def to_dict(
         self,
     ) -> dict[str, JSON]:
-        return {"name": N5_DEFAULT_NAME, "codecs": [c.to_dict() for c in self.codecs]}
+        return {
+            "name": N5_DEFAULT_NAME,
+            "configuration": {"codecs": [c.to_dict() for c in self.codecs]},
+        }

@@ -64,7 +64,7 @@ class N5WrapperStore[T: Store](WrapperStore):
         if b is None:
             return None
 
-        d = json.loads(b.as_buffer_like())
+        d = json.loads(b.to_bytes())
         n5_meta = N5GroupMetadata.from_jso(d)
         try:
             n5_meta = N5ArrayMetadata.from_group(n5_meta)
@@ -72,10 +72,10 @@ class N5WrapperStore[T: Store](WrapperStore):
         except KeyError:
             out_d = n5_meta.to_zarr()
 
-        b2 = json.dumps(out_d).encode()
+        b2 = json.dumps(out_d.to_dict()).encode()
         b2 = slice_buf(b2, byte_range)
 
-        return Buffer.from_bytes(b2)
+        return prototype.buffer.from_bytes(b2)
 
     async def get_partial_values(
         self,

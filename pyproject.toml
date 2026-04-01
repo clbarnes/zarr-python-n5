@@ -1,18 +1,23 @@
 [project]
 name = "zarr-n5"
 version = "0.1.0"
-description = "Add your description here"
+description = "Utilities for accessing N5 data through zarr v3."
 readme = "README.md"
 authors = [{ name = "Chris Barnes", email = "chris.barnes@gerbi-gmb.de" }]
 requires-python = ">=3.12"
 dependencies = ["zarr>=3.1.5"]
 
 [project.entry-points."zarr.codecs"]
-"n5_default" = "zarr_n5.codec.default:N5DefaultCodec"
+"n5_default" = "zarr_n5:N5DefaultCodec"
 
 [build-system]
 requires = ["uv_build>=0.9.8,<0.10.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = ["mypy>=1.19.1", "ruff>=0.15.6"]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "ruff>=0.15.6",
+    "tensorstore>=0.1.82",
+]

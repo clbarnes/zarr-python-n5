@@ -1,3 +1,4 @@
+from __future__ import annotations
 from copy import deepcopy
 import itertools
 from typing import Any, TYPE_CHECKING, Self
@@ -12,7 +13,6 @@ from zarr.codecs import blosc
 from zarr.codecs import GzipCodec, ZstdCodec
 
 from .util import N5Mode
-from .codec.default import N5DefaultCodec
 
 if TYPE_CHECKING:
     from typing import Self
@@ -55,7 +55,7 @@ class N5GroupMetadata:
     @classmethod
     def from_jso(cls, jso: dict[str, JSON]) -> Self:
         n5 = jso.pop("n5", None)
-        if not isinstance(n5, str):
+        if n5 is not None and not isinstance(n5, str):
             raise ValueError("n5 attribute is not a string")
         return cls(n5, jso)
 
@@ -115,6 +115,7 @@ class N5ArrayMetadata(N5GroupMetadata):
         return cls.from_group(grp)
 
     def to_zarr(self, mode: N5Mode = N5Mode.DEFAULT) -> ArrayV3Metadata:
+        from .codec.default import N5DefaultCodec
         if mode != N5Mode.DEFAULT:
             raise NotImplementedError("Only default-mode N5 is supported")
         compressor = self._to_zarr_codec()
