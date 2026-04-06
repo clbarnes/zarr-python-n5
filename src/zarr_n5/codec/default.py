@@ -30,7 +30,7 @@ def check_valid_transpose(codec: Codec):
 def check_valid_bytes(codec: Codec):
     if not isinstance(codec, BytesCodec):
         raise ValueError("not bytes codec")
-    if codec.endian != N5_ENDIAN:
+    if codec.endian is not None and codec.endian != N5_ENDIAN:
         raise ValueError("bytes codec must be big-endian")
 
 
