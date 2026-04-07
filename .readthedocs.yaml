@@ -16,9 +16,4 @@ build:
     build:
       html:
         - mkdir -p ${READTHEDOCS_OUTPUT}/html
-        - >
-          pdoc --output-directory ${READTHEDOCS_OUTPUT}/html
-            --no-include-undocumented
-            --docformat markdown
-            --search
-            zarr_n5
+        - pdoc --output-directory ${READTHEDOCS_OUTPUT}/html --no-include-undocumented --docformat markdown --search zarr_n5
