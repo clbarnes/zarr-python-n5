@@ -2,6 +2,7 @@
 Module containing `N5WrapperStore`,
 for silently converting N5 nodes to Zarr nodes.
 """
+
 from collections import defaultdict
 from collections.abc import AsyncIterator, Iterable
 from zarr.storage import WrapperStore

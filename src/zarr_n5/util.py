@@ -1,6 +1,7 @@
 """
 General utilities.
 """
+
 from zarr.abc.store import (
     ByteRequest,
     RangeByteRequest,

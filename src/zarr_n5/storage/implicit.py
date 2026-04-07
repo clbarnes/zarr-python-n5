@@ -2,6 +2,7 @@
 Module containing `ImplicitGroupWrapperStore`,
 for inferring groups with missing metadata.
 """
+
 from typing import Final
 from collections.abc import Iterable
 import json

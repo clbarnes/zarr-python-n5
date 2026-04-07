@@ -1,6 +1,7 @@
 """
 Utilities for parsing, representing, and converting N5 metadata.
 """
+
 from __future__ import annotations
 from copy import deepcopy
 import itertools
