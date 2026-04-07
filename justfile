@@ -3,10 +3,10 @@ default:
     just --list
 
 # Generate documentation under `./docs/`.
-docs:
+doc:
     rm -rf docs/zarr_n5
     uv run pdoc \
-        --output-directory docs \
+        --output-directory doc \
         --no-include-undocumented \
         --docformat markdown \
         --search \

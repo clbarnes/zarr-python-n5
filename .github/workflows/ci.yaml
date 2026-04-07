@@ -22,7 +22,7 @@ jobs:
       - uses: extractions/setup-just@v3
       - run: just lint
 
-  docs:
+  doc:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -30,7 +30,7 @@ jobs:
         with:
           enable-cache: true
       - uses: extractions/setup-just@v3
-      - run: just docs
+      - run: just doc
 
   test:
     runs-on: ubuntu-latest
@@ -53,7 +53,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     if: startsWith(github.event.ref, 'refs/tags/v')
-    needs: [format, lint, test]
+    needs: [format, lint, test, doc]
     environment:
       name: pypi
     permissions:
