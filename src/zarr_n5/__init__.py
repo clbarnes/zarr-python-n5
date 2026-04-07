@@ -1,3 +1,6 @@
+"""
+Utilities for working with [N5](https://github.com/saalfeldlab/n5) data through [zarr-python](https://github.com/zarr-developers/zarr-python).
+"""
 from zarr.registry import register_codec
 
 from .codec.default import N5DefaultCodec

@@ -1,3 +1,7 @@
+"""
+N5 Default codec module.
+"""
+
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Self
@@ -15,6 +19,8 @@ from zarr.registry import get_pipeline_class
 from ..metadata import COMPATIBLE_DATA_TYPES
 
 from ..util import N5BlockHeader
+
+__all__ = ["N5DefaultCodec"]
 
 N5_DEFAULT_NAME = "n5_default"
 N5_ENDIAN = Endian.big
@@ -47,7 +53,20 @@ CodecTuple = (
 
 @dataclass(frozen=True)
 class N5DefaultCodec(ArrayBytesCodec):
+    """Zarr codec for default-mode N5 data.
+
+    Only full-chunk reads are supported.
+    Use the `N5DefaultCodec.from_compressor` constructor if initialising manually.
+
+    - Reads and validates the N5 block header
+    - Applies the wrapped codecs to the N5 block body
+    - Truncates or pads the resulting array to match the requested chunk
+
+    Should be the only codec present.
+    """
+
     codecs: CodecTuple
+    """Codecs to be applied to the N5 block body."""
 
     def __init__(self, *, codecs: Iterable[Codec | dict[str, JSON]]) -> None:
         cs = parse_codecs(codecs)
@@ -62,10 +81,12 @@ class N5DefaultCodec(ArrayBytesCodec):
 
     @property
     def codec_pipeline(self) -> CodecPipeline:
+        """Get the `CodecPipeline` comprising the wrapped codecs."""
         return get_pipeline_class().from_codecs(self.codecs)
 
     @classmethod
     def from_compressor(cls, ndim: int, compressor: BytesBytesCodec | None = None):
+        """Construct the codec from minimal information."""
         transpose = cls.make_transpose(ndim)
         endian = cls.make_bytes()
         codecs: CodecTuple
@@ -77,11 +98,20 @@ class N5DefaultCodec(ArrayBytesCodec):
 
     @classmethod
     def make_transpose(cls, ndim: int) -> TransposeCodec:
+        """Generate the `TransposeCodec` needed for this data.
+
+        N5 data is always fully transposed.
+        """
         order = list(range(ndim))
         return TransposeCodec(order=tuple(reversed(order)))
 
     @classmethod
     def make_bytes(cls) -> BytesCodec:
+        """
+        Generate the `BytesCodec` needed for this data.
+
+        N5 data is always big-endian.
+        """
         return BytesCodec(endian=N5_ENDIAN)
 
     def compute_encoded_size(
@@ -120,10 +150,6 @@ class N5DefaultCodec(ArrayBytesCodec):
 
         return type(self)(codecs=codecs)
 
-    @property
-    def ndim(self):
-        return len(self.codecs[0].order)
-
     def validate(
         self,
         *,
@@ -131,8 +157,9 @@ class N5DefaultCodec(ArrayBytesCodec):
         dtype: ZDType[TBaseDType, TBaseScalar],
         chunk_grid: ChunkGrid,
     ) -> None:
-        if len(shape) != len(self.codecs[0].order):
-            raise ValueError(f"array is {len(shape)}D, codec is {self.ndim}D")
+        expected_ndim = len(self.codecs[0].order)
+        if len(shape) != expected_ndim:
+            raise ValueError(f"array is {len(shape)}D, codec is {expected_ndim}D")
         if dtype._zarr_v3_name not in COMPATIBLE_DATA_TYPES:
             raise ValueError(f"N5 does not support data type {dtype._zarr_v3_name}")
 

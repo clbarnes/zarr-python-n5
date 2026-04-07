@@ -1,3 +1,6 @@
+"""
+Utilities for parsing, representing, and converting N5 metadata.
+"""
 from __future__ import annotations
 from copy import deepcopy
 import itertools
@@ -18,6 +21,7 @@ if TYPE_CHECKING:
     from typing import Self
     from zarr.core.common import JSON
 
+__all__ = ["N5GroupMetadata", "N5ArrayMetadata", "COMPATIBLE_DATA_TYPES"]
 
 COMPATIBLE_DATA_TYPES: dict[str, tuple[ZDType, int]] = {
     "uint8": (zdt.UInt8(), 1),

@@ -1,3 +1,6 @@
+"""
+General utilities.
+"""
 from zarr.abc.store import (
     ByteRequest,
     RangeByteRequest,
@@ -9,6 +12,8 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import Self, Any
 import struct
+
+__all__ = ["N5Mode", "N5BlockHeader"]
 
 
 class N5Mode(IntEnum):

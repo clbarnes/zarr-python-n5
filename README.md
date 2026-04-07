@@ -14,7 +14,7 @@ Only whole-chunk reading is supported.
 
 | N5 compressor | Supported | Zarr bytes-to-bytes codec | Notes |
 | ------------- | --------- | ------------------------- | ----- |
-| `raw` | yes | n/a | |
+| `raw` | yes | n/a | Equivalent to omitted bytes-to-bytes codec |
 | `blosc` | yes | `blosc` | |
 | `gzip` | yes | `gzip` | |
 | `zstd` | yes | `zstd` | |
@@ -28,3 +28,9 @@ Only whole-chunk reading is supported.
 `N5WrapperStore` allows reading N5 data with DEFAULT-mode blocks through any Zarr store by converting metadata on the fly.
 By default, this does not replicate the N5 behaviour of inferring an empty group where a metadata document does not exist.
 To achieve this, wrap it in the provided `ImplicitGroupWrapperStore`.
+
+## Contributing
+
+Use [`uv`](https://docs.astral.sh/uv/) for project management.
+
+Use [`just`](https://github.com/casey/just) for common development tasks.

@@ -1,3 +1,5 @@
+"""Useful constant values."""
+
 N5_METADATA_KEY = "attributes.json"
 """Object name for N5 metadata files."""
 
