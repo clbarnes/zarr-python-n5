@@ -10,6 +10,10 @@ dependencies = ["zarr>=3.1.5"]
 [project.entry-points."zarr.codecs"]
 "n5_default" = "zarr_n5:N5DefaultCodec"
 
+[project.scripts]
+n5tozarr = "zarr_n5.cli.convert:main"
+
+
 [build-system]
 requires = ["uv_build>=0.9.8,<0.10.0"]
 build-backend = "uv_build"

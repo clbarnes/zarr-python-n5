@@ -2,11 +2,13 @@
 
 [N5](https://github.com/saalfeldlab/n5) utilities for [zarr-python](https://github.com/zarr-developers/zarr-python).
 
+- Documentation: <https://zarr-python-n5.readthedocs.io>
+
 ## Codecs
 
 ### N5 Default Codec
 
-[As described here](https://github.com/zarr-developers/zarr-extensions/pull/49).
+[As described here](https://github.com/zarr-developers/zarr-extensions/tree/main/codecs/n5_default).
 
 Only whole-chunk reading is supported.
 

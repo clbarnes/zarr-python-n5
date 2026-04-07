@@ -1,10 +1,5 @@
 version: 2
 
-# python:
-#   install:
-#     - method: "pip"
-#       path: "."
-
 build:
   os: ubuntu-lts-latest
   tools:
