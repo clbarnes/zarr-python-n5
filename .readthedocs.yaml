@@ -1,0 +1,24 @@
+version: 2
+
+python:
+  install:
+    - method: "pip"
+      path: "."
+
+build:
+  os: ubuntu-lts-latest
+  tools:
+    python: "3.12"
+  jobs:
+    install:
+      - pip install --upgrade pip
+      - pip install --group 'docs'
+    build:
+      html:
+        - mkdir -p ${READTHEDOCS_OUTPUT}/html
+        - >
+          pdoc --output-directory ${READTHEDOCS_OUTPUT}/html
+            --no-include-undocumented
+            --docformat markdown
+            --search
+            zarr_n5
