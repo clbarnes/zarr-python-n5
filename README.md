@@ -31,6 +31,18 @@ Only whole-chunk reading is supported.
 By default, this does not replicate the N5 behaviour of inferring an empty group where a metadata document does not exist.
 To achieve this, wrap it in the provided `ImplicitGroupWrapperStore`.
 
+## Tools
+
+This package provides `n5tozarr`, a command-line interface for converting N5 data to Zarr in-place.
+The N5 metadata are left untouched, and no chunk data is altered, moved, or copied.
+A `zarr.json` file is simply added to each Zarr node.
+
+N5 attributes are extracted and added to the `zarr.json` attributes.
+
+The full N5 metadata document is accessible inside the `zarr.json` in an attribute called `_n5`.
+If a directory/prefix was empty and the existence of an N5 group was inferred,
+the `zarr.json` attribute `_implicit` will be `true`.
+
 ## Contributing
 
 Use [`uv`](https://docs.astral.sh/uv/) for project management.
