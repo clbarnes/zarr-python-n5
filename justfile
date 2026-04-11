@@ -2,9 +2,9 @@
 default:
     just --list
 
-# Generate documentation under `./docs/`.
+# Generate documentation under `./doc/`.
 doc:
-    rm -rf docs/zarr_n5
+    rm -rf doc/zarr_n5
     uv run pdoc \
         --output-directory doc \
         --no-include-undocumented \
