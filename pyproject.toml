@@ -13,6 +13,10 @@ dependencies = ["zarr>=3.1.5"]
 [project.scripts]
 n5tozarr = "zarr_n5.cli.convert:main"
 
+[project.urls]
+source = "https://github.com/clbarnes/zarr-python-n5"
+issues = "https://github.com/clbarnes/zarr-python-n5/issues"
+documentation = "https://zarr-python-n5.readthedocs.io/en/stable/zarr_n5.html"
 
 [build-system]
 requires = ["uv_build>=0.9.8,<0.10.0"]
