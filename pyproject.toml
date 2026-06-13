@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Utilities for accessing N5 data through zarr v3."
 readme = "README.md"
 authors = [{ name = "Chris Barnes", email = "chris.barnes@gerbi-gmb.de" }]
-requires-python = ">=3.12,<4.0"
+requires-python = ">=3.11,<4.0"
 dependencies = ["zarr>=3.1.5"]
 
 [project.entry-points."zarr.codecs"]

@@ -7,14 +7,17 @@ from zarr.abc.store import (
     RangeByteRequest,
     OffsetByteRequest,
     SuffixByteRequest,
+    Store,
 )
 from .constants import ZARR_V3_METADATA_KEY
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Self, Any
+from typing import Self, Any, TypeVar
 import struct
 
 __all__ = ["N5Mode", "N5BlockHeader"]
+
+TStore = TypeVar("TStore", bound=Store)
 
 
 class N5Mode(IntEnum):

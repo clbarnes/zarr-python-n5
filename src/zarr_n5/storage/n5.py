@@ -7,19 +7,19 @@ from collections import defaultdict
 from collections.abc import AsyncIterator, Iterable
 from zarr.storage import WrapperStore
 from zarr.abc.store import (
-    Store,
     ByteRequest,
 )
 from zarr.core.buffer import Buffer, BufferPrototype
 import json
 import asyncio
+from typing import Generic
 
 from ..constants import N5_METADATA_KEY, ZARR_V3_METADATA_KEY
 from ..metadata import N5GroupMetadata, N5ArrayMetadata
-from ..util import slice_buf, is_zarr3_metadata, N5Mode
+from ..util import slice_buf, is_zarr3_metadata, N5Mode, TStore
 
 
-class N5WrapperStore[T: Store](WrapperStore):
+class N5WrapperStore(WrapperStore[TStore], Generic[TStore]):
     """A read-only store for opening N5 hierarchies.
 
     Requests for Zarr metadata documents are redirected to N5 attributes,
@@ -31,7 +31,7 @@ class N5WrapperStore[T: Store](WrapperStore):
     Only compatible with DEFAULT-mode N5 arrays.
     """
 
-    _store: T
+    _store: TStore
 
     def intercept_metadata(self, key: str) -> None | str:
         """If the given key is for Zarr v3 metadata, return the key for N5 metadata in the equivalent node.

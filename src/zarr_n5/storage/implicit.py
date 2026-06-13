@@ -3,19 +3,18 @@ Module containing `ImplicitGroupWrapperStore`,
 for inferring groups with missing metadata.
 """
 
-from typing import Final
+from typing import Final, Generic
 from collections.abc import Iterable
 import json
 
 from zarr.abc.store import (
-    Store,
     ByteRequest,
 )
 from zarr.storage import WrapperStore
 from zarr.core.group import GroupMetadata
 from zarr.core.buffer import BufferPrototype, Buffer
 
-from ..util import slice_buf, is_zarr3_metadata
+from ..util import slice_buf, is_zarr3_metadata, TStore
 
 __all__ = ["ImplicitGroupWrapperStore"]
 
@@ -30,7 +29,7 @@ def make_implicit_group_bytes() -> bytes:
 IMPLICIT_GROUP_BYTES: Final[bytes] = make_implicit_group_bytes()
 
 
-class ImplicitGroupWrapperStore[T: Store](WrapperStore):
+class ImplicitGroupWrapperStore(WrapperStore[TStore], Generic[TStore]):
     """A store which supplies empty group metadata documents if they do not exist.
 
     Used to replicate N5's behaviour where any directory (or prefix) is a valid group,
@@ -40,7 +39,7 @@ class ImplicitGroupWrapperStore[T: Store](WrapperStore):
     Inferred group metadata's attributes will contain the key/value `"_implicit": true`.
     """
 
-    _store: T
+    _store: TStore
 
     async def get(
         self,
