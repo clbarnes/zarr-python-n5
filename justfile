@@ -31,4 +31,4 @@ bump level:
     uv version --bump {{level}}
     git add .
     git commit -m "Bump to v$(uv version --short)"
-    git tag -a "v$(uv version --short)" -m "Release version $(uv version -short)"
+    git tag -a "v$(uv version --short)" -m "Release version $(uv version --short)"
