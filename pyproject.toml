@@ -37,5 +37,6 @@ lint = [
 ]
 test = [
     "pytest>=9.0.2",
+    "pytest-asyncio>=1.4.0",
     "tensorstore>=0.1.82",
 ]

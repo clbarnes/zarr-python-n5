@@ -5,6 +5,7 @@ for silently converting N5 nodes to Zarr nodes.
 
 from collections import defaultdict
 from collections.abc import AsyncIterator, Iterable
+import logging
 from zarr.storage import WrapperStore
 from zarr.abc.store import (
     ByteRequest,
@@ -17,6 +18,8 @@ from typing import Generic
 from ..constants import N5_METADATA_KEY, ZARR_V3_METADATA_KEY
 from ..metadata import N5GroupMetadata, N5ArrayMetadata
 from ..util import slice_buf, is_zarr3_metadata, N5Mode, TStore
+
+logger = logging.getLogger(__name__)
 
 
 class N5WrapperStore(WrapperStore[TStore], Generic[TStore]):
@@ -64,12 +67,14 @@ class N5WrapperStore(WrapperStore[TStore], Generic[TStore]):
         if k2 is None:
             return await self._store.get(key, prototype, byte_range)
 
-        b = await self._store.get(k2, prototype)
+        res = await self._store.get(k2, prototype)
 
-        if b is None:
+        if res is None:
             return None
 
-        d = json.loads(b.to_bytes())
+        b = res.to_bytes()
+        logger.debug("Got N5 metadata from %s: %s", k2, b)
+        d = json.loads(b)
         n5_meta = N5GroupMetadata.from_jso(d)
         try:
             n5_meta = N5ArrayMetadata.from_group(n5_meta)
@@ -78,6 +83,8 @@ class N5WrapperStore(WrapperStore[TStore], Generic[TStore]):
             out_d = n5_meta.to_zarr()
 
         b2 = json.dumps(out_d.to_dict()).encode()
+        logger.debug("Inferred Zarr v3 metadata at %s: %s", key, b2)
+
         b2 = slice_buf(b2, byte_range)
 
         return prototype.buffer.from_bytes(b2)

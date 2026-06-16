@@ -37,7 +37,7 @@ def check_valid_bytes(codec: Codec):
     if not isinstance(codec, BytesCodec):
         raise ValueError("not bytes codec")
     if codec.endian is not None and codec.endian != N5_ENDIAN:
-        raise ValueError("bytes codec must be big-endian")
+        raise ValueError(f"bytes codec must be big-endian, got {codec.endian}")
 
 
 def check_valid_compressor(codec: Codec):
@@ -49,6 +49,21 @@ CodecTuple = (
     tuple[TransposeCodec, BytesCodec]
     | tuple[TransposeCodec, BytesCodec, BytesBytesCodec]
 )
+
+
+def fix_bytes(
+    codecs: Iterable[Codec | dict[str, JSON]],
+) -> Iterable[Codec | dict[str, JSON]]:
+    """Explicitly set bytes codec's endianness to None.
+
+    Fixes a bug in zarr-python which prevents bytes codecs from being roundtripped:
+    <https://github.com/zarr-developers/zarr-python/issues/4073>
+    """
+    for c in codecs:
+        if not isinstance(c, Codec) and c["name"] == "bytes":
+            config: dict[str, JSON] = c.setdefault("configuration", dict())  # type: ignore
+            config.setdefault("endian", None)
+        yield c
 
 
 @dataclass(frozen=True)
@@ -69,7 +84,7 @@ class N5DefaultCodec(ArrayBytesCodec):
     """Codecs to be applied to the N5 block body."""
 
     def __init__(self, *, codecs: Iterable[Codec | dict[str, JSON]]) -> None:
-        cs = parse_codecs(codecs)
+        cs = parse_codecs(fix_bytes(codecs))
         if not 2 <= len(cs) <= 3:
             raise ValueError(f"expected 2-3 codecs, got {len(cs)}")
         check_valid_transpose(cs[0])
