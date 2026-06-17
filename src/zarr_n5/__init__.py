@@ -10,4 +10,8 @@ from .storage.implicit import ImplicitGroupWrapperStore
 
 __all__ = ["N5WrapperStore", "ImplicitGroupWrapperStore", "N5DefaultCodec"]
 
-register_codec("n5_default", N5DefaultCodec, qualname="zarr_n5.N5DefaultCodec")
+register_codec(
+    "n5_default",
+    N5DefaultCodec,
+    #    qualname="zarr_n5.N5DefaultCodec"
+)
