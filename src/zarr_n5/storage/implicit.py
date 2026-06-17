@@ -75,3 +75,6 @@ class ImplicitGroupWrapperStore(WrapperStore[TStore], Generic[TStore]):
         if is_zarr3_metadata(key):
             return True
         return await super().exists(key)
+
+    def __str__(self) -> str:
+        return f"{type(self).__name__}({self._store})"
