@@ -579,7 +579,7 @@ wheels = [
 
 [[package]]
 name = "zarr-n5"
-version = "0.3.0"
+version = "0.3.1"
 source = { editable = "." }
 dependencies = [
     { name = "zarr" },

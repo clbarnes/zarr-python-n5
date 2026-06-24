@@ -1,6 +1,6 @@
 [project]
 name = "zarr-n5"
-version = "0.3.0"
+version = "0.3.1"
 description = "Utilities for accessing N5 data through zarr v3."
 readme = "README.md"
 authors = [{ name = "Chris Barnes", email = "chris.barnes@gerbi-gmb.de" }]
