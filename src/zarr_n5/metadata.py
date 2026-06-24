@@ -10,7 +10,7 @@ from zarr.core.group import GroupMetadata
 from zarr.core.metadata.v3 import ArrayV3Metadata
 from zarr.core.dtype import ZDType
 from zarr.core import dtype as zdt
-from zarr.core.chunk_grids import RegularChunkGrid
+from zarr.core.metadata.v3 import RegularChunkGridMetadata
 from zarr.core.chunk_key_encodings import V2ChunkKeyEncoding
 from zarr.abc.codec import BytesBytesCodec
 from zarr.codecs import blosc
@@ -130,7 +130,7 @@ class N5ArrayMetadata(N5GroupMetadata):
         return ArrayV3Metadata(
             shape=self.dimensions,
             data_type=COMPATIBLE_DATA_TYPES[self.data_type][0],
-            chunk_grid=RegularChunkGrid(chunk_shape=self.block_size),
+            chunk_grid=RegularChunkGridMetadata(chunk_shape=tuple(self.block_size)),
             chunk_key_encoding=V2ChunkKeyEncoding("/"),
             fill_value=0,
             dimension_names=None,
