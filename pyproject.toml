@@ -4,8 +4,8 @@ version = "0.2.0"
 description = "Utilities for accessing N5 data through zarr v3."
 readme = "README.md"
 authors = [{ name = "Chris Barnes", email = "chris.barnes@gerbi-gmb.de" }]
-requires-python = ">=3.11,<4.0"
-dependencies = ["zarr>=3.1.5"]
+requires-python = ">=3.12,<4.0"
+dependencies = ["zarr>=3.2.0"]
 
 [project.entry-points."zarr.codecs"]
 "n5_default" = "zarr_n5:N5DefaultCodec"

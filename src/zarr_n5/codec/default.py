@@ -9,7 +9,7 @@ from typing import Self
 from zarr.abc.codec import ArrayBytesCodec, Codec, BytesBytesCodec, CodecPipeline
 from zarr.core.array_spec import ArraySpec
 from zarr.core.buffer.core import Buffer, NDBuffer
-from zarr.core.chunk_grids import ChunkGrid
+from zarr.core.metadata.v3 import ChunkGridMetadata
 from zarr.core.dtype.wrapper import TBaseDType, ZDType, TBaseScalar
 from zarr.core.common import JSON, parse_named_configuration
 from zarr.core.metadata.v3 import parse_codecs
@@ -170,7 +170,7 @@ class N5DefaultCodec(ArrayBytesCodec):
         *,
         shape: tuple[int, ...],
         dtype: ZDType[TBaseDType, TBaseScalar],
-        chunk_grid: ChunkGrid,
+        chunk_grid: ChunkGridMetadata,
     ) -> None:
         expected_ndim = len(self.codecs[0].order)
         if len(shape) != expected_ndim:
